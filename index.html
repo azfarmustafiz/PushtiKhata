@@ -1,0 +1,796 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>পুষ্টি খাতা</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Tiro+Bangla&display=swap">
+<style>
+/* Layout: one narrow column, five tabs on a bottom bar. Paddy-green ink on pale rice-field grey; each macro owns one hue. */
+:root{
+  --bg:#F1F4EE; --surface:#FFFFFF; --soft:#E5EDE4; --ink:#14211A; --muted:#566A5E; --line:#D6DED3;
+  --accent:#1B7A4B; --accent-ink:#FFFFFF;
+  --kcal:#1B7A4B; --pro:#2D6CB3; --carb:#B97E0C; --fat:#C4533D; --water:#1F8FBF; --warn:#B3261E;
+  --font-ui:"Hind Siliguri","Noto Sans Bengali",system-ui,sans-serif;
+  --font-display:"Tiro Bangla","Noto Serif Bengali",Georgia,serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1712; --surface:#172019; --soft:#1F2B23; --ink:#E6EEE7; --muted:#93A599; --line:#2A372E;
+    --accent:#4CC38A; --accent-ink:#06150D;
+    --kcal:#4CC38A; --pro:#6FA6E6; --carb:#E2AE46; --fat:#E3806B; --water:#55B8E2; --warn:#F2877E;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1712; --surface:#172019; --soft:#1F2B23; --ink:#E6EEE7; --muted:#93A599; --line:#2A372E;
+  --accent:#4CC38A; --accent-ink:#06150D;
+  --kcal:#4CC38A; --pro:#6FA6E6; --carb:#E2AE46; --fat:#E3806B; --water:#55B8E2; --warn:#F2877E;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:16px;line-height:1.5;
+  padding-block:16px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.app{max-width:720px;width:100%;min-width:0;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.app>*{min-width:0;max-width:100%}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.eyebrow{font-size:13px;letter-spacing:.04em;color:var(--muted);font-weight:600}
+.date{font-family:var(--font-display);font-size:26px;line-height:1.2;text-wrap:balance}
+.datenav{display:flex;gap:6px}
+.datenav button{min-width:44px;height:44px;border:1px solid var(--line);background:var(--surface);border-radius:12px;font-weight:600}
+.datenav button:hover{background:var(--soft)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+h2{font-family:var(--font-display);font-size:20px;font-weight:400;margin:0}
+h3{font-size:15px;margin:0;font-weight:600}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.hero{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.hero .big{font-family:var(--font-display);font-size:44px;line-height:1;color:var(--kcal)}
+.hero .of{color:var(--muted)}
+.bar{height:10px;border-radius:99px;background:var(--soft);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--kcal);transition:width .35s ease}
+.bar.over>i{background:var(--warn)}
+.macros{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.macro{display:flex;flex-direction:column;gap:6px;min-width:0}
+.macro .n{font-weight:600}
+.macro .v{font-size:13px;color:var(--muted)}
+.macro.pro .bar>i{background:var(--pro)} .macro.carb .bar>i{background:var(--carb)} .macro.fat .bar>i{background:var(--fat)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.mini{display:flex;align-items:center;gap:12px;text-align:left;width:100%;border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:12px 16px}
+.mini .bar{flex:1}
+.mini .bar>i{background:var(--water)}
+.meal{display:flex;flex-direction:column;gap:6px}
+.meal-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.meal-head b{font-weight:600}
+.entry{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.entry:last-child{border-bottom:0}
+.entry .nm{font-weight:500;min-width:0;overflow-wrap:anywhere}
+.entry .mc{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
+.gin{width:76px;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:0 8px;text-align:right}
+.kc{font-weight:600;min-width:64px;text-align:right}
+.x{width:36px;height:36px;border:0;background:transparent;border-radius:10px;color:var(--muted);font-size:18px}
+.x:hover{background:var(--soft);color:var(--warn)}
+.empty{border:1.5px dashed var(--line);border-radius:16px;padding:24px 16px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+.btn{height:46px;padding:0 18px;border-radius:12px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.sm{height:40px;padding:0 14px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+input[type=text],input[type=search],input[type=number],select{height:46px;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:0 12px;width:100%;min-width:0}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1 1 140px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin;min-width:0;max-width:100%}
+.chip{flex:0 0 auto;height:36px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-size:14px;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.food{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;padding:10px 4px;border-radius:0}
+.food:hover{background:var(--soft)}
+.food .l{min-width:0}
+.food .nm{font-weight:600;overflow-wrap:anywhere}
+.food .en{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.food .r{text-align:right;font-size:12.5px;color:var(--muted);flex:0 0 auto}
+.food .r b{display:block;font-size:15px;color:var(--ink)}
+.tag{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-left:6px;color:var(--muted)}
+.composer{border:2px solid var(--accent);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--surface)}
+.prev{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;text-align:center}
+.prev div{background:var(--soft);border-radius:10px;padding:8px 4px}
+.prev b{display:block;font-size:17px}
+.prev span{font-size:12px;color:var(--muted)}
+.tank-wrap{display:flex;gap:20px;align-items:center;justify-content:center;flex-wrap:wrap}
+.tank{position:relative;width:128px;height:232px;border:3px solid var(--water);border-radius:18px 18px 40px 40px;overflow:hidden;background:var(--soft)}
+.tank .fill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,color-mix(in srgb,var(--water) 75%,white),var(--water));transition:height .5s ease}
+.tank .pc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-display);font-size:30px;text-shadow:0 1px 6px var(--bg)}
+.wnum{font-family:var(--font-display);font-size:38px;line-height:1.1;color:var(--water)}
+.wbtns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.wbtns button{height:56px;border-radius:14px;border:1px solid var(--water);background:var(--surface);font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2}
+.wbtns button span{font-size:12px;font-weight:400;color:var(--muted)}
+.wbtns button:hover{background:var(--soft)}
+.wlog{display:flex;flex-direction:column}
+.wlog div{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dashed var(--line)}
+svg.chart{width:100%;height:auto;display:block}
+svg.chart text{fill:var(--muted);font-family:var(--font-ui);font-size:10px}
+svg.chart text.val{fill:var(--ink)}
+svg.chart .b1{fill:var(--kcal)} svg.chart .b2{fill:var(--water)} svg.chart .gl{stroke:var(--accent);stroke-dasharray:4 3;stroke-width:1} svg.chart .ax{stroke:var(--line)}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stats div{background:var(--soft);border-radius:12px;padding:10px 12px}
+.stats b{display:block;font-family:var(--font-display);font-size:24px;font-weight:400}
+.nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;
+  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));z-index:5}
+.nav-in{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;width:100%;max-width:720px}
+.nav button{border:0;background:transparent;border-radius:12px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12.5px;color:var(--muted)}
+.nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav button[aria-current="page"]{color:var(--accent);background:var(--soft);font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:9;max-width:90vw}
+.note{font-size:12.5px;color:var(--muted);line-height:1.6}
+.list-c{display:flex;flex-direction:column}
+.list-c div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.status{font-size:12.5px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div>
+      <div class="eyebrow">পুষ্টি খাতা</div>
+      <div class="date" id="dateLabel"></div>
+    </div>
+    <div class="datenav">
+      <button id="prev" aria-label="আগের দিন">‹</button>
+      <button id="todayBtn">আজ</button>
+      <button id="next" aria-label="পরের দিন">›</button>
+    </div>
+  </header>
+
+  <!-- আজ -->
+  <section id="v-today" class="app" style="gap:16px">
+    <div class="card" id="summary"></div>
+    <button class="mini" id="waterMini" aria-label="পানি ট্র্যাকারে যান"></button>
+    <div class="card" id="log"></div>
+  </section>
+
+  <!-- খাবার যোগ -->
+  <section id="v-add" class="app" hidden>
+    <div class="card">
+      <h2>খাবার খুঁজুন</h2>
+      <input type="search" id="q" placeholder="নাম লিখুন, যেমন: ভাত, ইলিশ, rice, egg" autocomplete="off" aria-label="খাবারের নাম">
+      <div class="chips" id="cats"></div>
+      <div id="composer" hidden></div>
+      <div id="results"></div>
+    </div>
+  </section>
+
+  <!-- পানি -->
+  <section id="v-water" class="app" hidden>
+    <div class="card" id="waterCard"></div>
+  </section>
+
+  <!-- রিপোর্ট -->
+  <section id="v-report" class="app" hidden>
+    <div class="card" id="reportCard"></div>
+  </section>
+
+  <!-- লক্ষ্য -->
+  <section id="v-goals" class="app" hidden>
+    <div class="card">
+      <h2>দৈনিক লক্ষ্য</h2>
+      <div class="row">
+        <label class="f">ক্যালোরি (kcal)<input type="text" inputmode="numeric" id="gK"></label>
+        <label class="f">প্রোটিন (গ্রাম)<input type="text" inputmode="numeric" id="gP"></label>
+        <label class="f">পানি (মিলি)<input type="text" inputmode="numeric" id="gW"></label>
+      </div>
+      <div class="note" id="gDerived"></div>
+      <button class="btn" id="saveGoals">লক্ষ্য সংরক্ষণ করুন</button>
+    </div>
+
+    <div class="card">
+      <h2>আমার লক্ষ্য হিসাব করুন</h2>
+      <div class="row">
+        <label class="f">লিঙ্গ<select id="cSex"><option value="m">পুরুষ</option><option value="f">নারী</option></select></label>
+        <label class="f">বয়স<input type="text" inputmode="numeric" id="cAge" placeholder="২২"></label>
+        <label class="f">ওজন (কেজি)<input type="text" inputmode="decimal" id="cW" placeholder="৭০"></label>
+        <label class="f">উচ্চতা (সেমি)<input type="text" inputmode="decimal" id="cH" placeholder="১৭০"></label>
+      </div>
+      <div class="row">
+        <label class="f">দৈনিক কাজ
+          <select id="cAct">
+            <option value="1.2">বসে থাকা কাজ, ব্যায়াম নেই</option>
+            <option value="1.375" selected>সপ্তাহে ১–৩ দিন ব্যায়াম</option>
+            <option value="1.55">সপ্তাহে ৪–৫ দিন ব্যায়াম</option>
+            <option value="1.725">প্রতিদিন কঠিন ব্যায়াম</option>
+          </select></label>
+        <label class="f">উদ্দেশ্য
+          <select id="cMode">
+            <option value="-500" selected>চর্বি কমানো (−৫০০ kcal)</option>
+            <option value="0">ওজন ধরে রাখা</option>
+            <option value="300">পেশি বাড়ানো (+৩০০ kcal)</option>
+          </select></label>
+      </div>
+      <button class="btn ghost" id="calc">হিসাব করুন</button>
+      <div id="calcOut"></div>
+    </div>
+
+    <div class="card">
+      <h2>নিজের খাবার যোগ করুন</h2>
+      <div class="note">তালিকায় না পেলে প্রতি ১০০ গ্রামের মান লিখুন (প্যাকেটের গায়ে থাকে)।</div>
+      <label class="f">নাম<input type="text" id="cfN" placeholder="যেমন: বাড়ির মুরগির ঝোল"></label>
+      <div class="row">
+        <label class="f">kcal<input type="text" inputmode="decimal" id="cfK"></label>
+        <label class="f">প্রোটিন<input type="text" inputmode="decimal" id="cfP"></label>
+        <label class="f">কার্ব<input type="text" inputmode="decimal" id="cfC"></label>
+        <label class="f">ফ্যাট<input type="text" inputmode="decimal" id="cfF"></label>
+      </div>
+      <button class="btn ghost" id="cfAdd">তালিকায় যোগ করুন</button>
+      <div class="list-c" id="cfList"></div>
+    </div>
+
+    <div class="card">
+      <h2>তথ্য</h2>
+      <div class="status" id="storeStatus"></div>
+      <div class="note">খাবারের মান প্রতি ১০০ গ্রামে এবং আনুমানিক। এগুলো সাধারণ খাদ্য উপাদান তালিকা (বাংলাদেশের INFS, ভারতের IFCT ও USDA) থেকে নেওয়া গড় মান, প্রতিটি লাইভ যাচাই করা নয়। রান্নায় তেল, ঘি ও মসলার পরিমাণে একই পদের ক্যালোরি অনেক বদলে যায়। বাড়িতে রান্না করলে এক বাটির ওজন মেপে নেওয়া সবচেয়ে নির্ভরযোগ্য। ডায়াবেটিস বা অন্য রোগ থাকলে খাদ্যতালিকা ঠিক করার আগে চিকিৎসক বা পুষ্টিবিদের সঙ্গে কথা বলুন।</div>
+    </div>
+  </section>
+</div>
+
+<nav class="nav" aria-label="প্রধান মেনু"><div class="nav-in" id="nav"></div></nav>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- খাবারের তালিকা: নাম;ইংরেজি;kcal;প্রোটিন;কার্ব;ফ্যাট;ক্যাটাগরি;একক=গ্রাম|... (প্রতি ১০০ গ্রামে) ---------- */
+const CATS={C:'ভাত-রুটি-শস্য',D:'ডাল-বাদাম',V:'সবজি-শাক',F:'মাছ',M:'মাংস-ডিম',L:'দুধ-দই',R:'ফল',S:'নাস্তা-ফাস্টফুড',W:'মিষ্টি-পিঠা',B:'পানীয়',O:'তেল-মসলা',K:'রান্না করা পদ',U:'আমার খাবার'};
+const RAW=`
+ভাত (সাদা, সেদ্ধ);Cooked white rice bhat;130;2.7;28;0.3;C;১ প্লেট=250|১ কাপ=160|১ হাতা=100
+লাল চালের ভাত;Red rice bhat;123;2.7;25.6;1;C;১ প্লেট=250|১ কাপ=160
+ব্রাউন রাইস (সেদ্ধ);Brown rice cooked;112;2.3;23.5;0.8;C;১ কাপ=160
+পান্তা ভাত;Panta bhat fermented rice;70;1.5;15;0.2;C;১ বাটি=200
+চাল (কাঁচা);Raw rice chal;360;6.8;79;0.6;C;১ কাপ=190
+আটার রুটি;Atta roti chapati;270;9;52;3;C;১ পিস=40
+পরোটা;Porota paratha;330;7;45;14;C;১ পিস=80
+লুচি;Luchi puri;380;7;47;18;C;১ পিস=30
+নান রুটি;Naan;290;9;50;5;C;১ পিস=90
+খিচুড়ি;Khichuri khichdi;130;5;20;3.5;C;১ প্লেট=300
+পোলাও;Polao pulao;160;3;26;5;C;১ প্লেট=250
+মুড়ি;Muri puffed rice;380;6;85;1;C;১ বাটি=30|১ মুঠো=15
+চিড়া;Chira flattened rice;350;6.6;77;1.2;C;১ বাটি=50
+খই;Khoi popped rice;370;7;79;1.5;C;১ মুঠো=20
+সুজি;Suji semolina;350;10;73;1;C;১ টেবিল চামচ=15
+আটা;Atta wheat flour;340;12;71;1.7;C;১ কাপ=120
+ময়দা;Moyda maida refined flour;350;10;74;1;C;১ কাপ=125
+সাদা পাউরুটি;White bread paurooti;265;9;49;3.2;C;১ স্লাইস=30
+ব্রাউন ব্রেড;Brown whole wheat bread;250;10;43;3.5;C;১ স্লাইস=30
+ওটস;Oats;380;13;66;7;C;১ কাপ=40|১ টেবিল চামচ=10
+কর্নফ্লেক্স;Cornflakes;375;7;84;0.9;C;১ বাটি=30
+নুডলস (সেদ্ধ);Boiled noodles;138;4.5;25;2;C;১ প্লেট=200
+ইন্সট্যান্ট নুডলস (শুকনো প্যাকেট);Instant noodles packet maggi;450;9;60;19;C;১ প্যাকেট=70
+পাস্তা (সেদ্ধ);Pasta spaghetti cooked;158;5.8;31;0.9;C;১ প্লেট=200
+ভুট্টা (সেদ্ধ);Bhutta corn boiled;96;3.4;21;1.5;C;১ পিস=100
+মসুর ডাল (কাঁচা);Masoor dal raw red lentil;350;25;60;1.1;D;১ কাপ=200
+মুগ ডাল (কাঁচা);Moong dal raw;347;24;60;1.2;D;১ কাপ=200
+ছোলার ডাল (কাঁচা);Chholar dal raw chana dal;360;20;61;5;D;১ কাপ=200
+মাষকলাই ডাল (কাঁচা);Mashkalai dal raw urad;347;24;59;1.4;D;১ কাপ=200
+মটর ডাল (কাঁচা);Motor dal raw split pea;340;22;60;1.5;D;১ কাপ=200
+খেসারি ডাল (কাঁচা);Khesari dal raw;345;28;56;1;D;১ কাপ=200
+ডাল (রান্না, ঘন);Cooked dal thick;105;7;16;1.5;D;১ বাটি=150|১ হাতা=60
+পাতলা ডাল (রান্না);Thin dal soup;55;3.5;8;1;D;১ বাটি=150
+ছোলা (সেদ্ধ);Chhola boiled chickpeas;164;9;27;2.6;D;১ বাটি=100
+ছোলা ভাজা;Roasted chickpeas chola bhaja;370;20;58;6;D;১ মুঠো=30
+রাজমা (সেদ্ধ);Rajma kidney beans boiled;127;8.7;22;0.5;D;১ বাটি=150
+সয়া চাঙ্ক (শুকনো);Soya chunks dry;345;52;33;0.5;D;১ মুঠো=30
+টোফু;Tofu;76;8;1.9;4.8;D;১ টুকরা=100
+চিনাবাদাম;Peanut chinabadam;567;25.8;16;49;D;১ মুঠো=30|১ টেবিল চামচ=10
+কাজুবাদাম;Cashew nut kaju;553;18;30;44;D;১ মুঠো=28
+কাঠবাদাম;Almond kath badam;579;21;22;50;D;১ মুঠো=28
+আখরোট;Walnut;654;15;14;65;D;১ মুঠো=28
+পেস্তা বাদাম;Pistachio;560;20;28;45;D;১ মুঠো=28
+কিশমিশ;Raisins kishmish;299;3;79;0.5;D;১ টেবিল চামচ=10
+খেজুর;Dates khejur;282;2.5;75;0.4;D;১ পিস=8
+পিনাট বাটার;Peanut butter;588;25;20;50;D;১ টেবিল চামচ=16
+তিল;Sesame til;573;18;23;50;D;১ চা চামচ=4
+আলু (সেদ্ধ);Aloo boiled potato;87;1.9;20;0.1;V;১ পিস=100
+আলু (কাঁচা);Aloo raw potato;77;2;17;0.1;V;১ পিস=120
+আলু ভর্তা;Aloo bharta mashed potato;120;2;18;5;V;১ চামচ=30
+আলু ভাজি;Aloo bhaji fry;150;2.5;20;7;V;১ বাটি=100
+মিষ্টি আলু (সেদ্ধ);Misti aloo sweet potato boiled;86;1.6;20;0.1;V;১ পিস=150
+বেগুন (কাঁচা);Begun brinjal eggplant raw;25;1;6;0.2;V;১ পিস=150
+বেগুন ভাজা;Begun bhaja fried eggplant;130;1.5;8;11;V;১ পিস=40
+বেগুন ভর্তা;Begun bharta;80;1.5;7;5;V;১ চামচ=30
+পটল;Potol pointed gourd;20;2;3;0.3;V;১ পিস=50
+ঝিঙা;Jhinga ridge gourd;20;0.5;4;0.2;V
+লাউ;Lau bottle gourd;14;0.6;3;0.1;V
+মিষ্টি কুমড়া;Misti kumra pumpkin;26;1;6.5;0.1;V
+করলা;Korola bitter gourd;17;1;3.7;0.2;V
+টমেটো;Tomato;18;0.9;3.9;0.2;V;১ পিস=100
+শসা;Shosha cucumber;15;0.7;3.6;0.1;V;১ পিস=150
+গাজর;Gajor carrot;41;0.9;10;0.2;V;১ পিস=70
+ফুলকপি;Fulkopi cauliflower;25;1.9;5;0.3;V
+বাঁধাকপি;Badhakopi cabbage;25;1.3;5.8;0.1;V
+মুলা;Mula radish;16;0.7;3.4;0.1;V
+বরবটি;Borboti yardlong bean;47;2.8;8.4;0.4;V
+শিম;Shim flat beans;44;2.7;8.2;0.2;V
+মটরশুঁটি;Motorshuti green peas;81;5.4;14;0.4;V;১ বাটি=100
+ঢেঁড়স;Dherosh okra bhindi;33;1.9;7.5;0.2;V
+কাঁচা কলা;Kacha kola raw plantain;116;1.2;28;0.3;V
+কচু;Kochu taro;112;1.5;26;0.2;V
+পালং শাক;Palong shak spinach;23;2.9;3.6;0.4;V
+লাল শাক;Lal shak red amaranth;23;2.5;4;0.3;V
+পুঁইশাক;Pui shak malabar spinach;19;1.8;3.4;0.3;V
+কলমি শাক;Kolmi shak water spinach;19;2.6;3.1;0.2;V
+কচুশাক;Kochu shak taro leaves;42;4.3;6.7;0.7;V
+পাট শাক;Pat shak jute leaves;34;4.5;5.5;0.5;V
+ব্রকলি;Broccoli;34;2.8;7;0.4;V
+ক্যাপসিকাম;Capsicum bell pepper;20;0.9;4.6;0.2;V
+পেঁয়াজ;Peyaj onion;40;1.1;9;0.1;V;১ পিস=80
+রসুন;Roshun garlic;149;6.4;33;0.5;V;১ কোয়া=3
+আদা;Ada ginger;80;1.8;18;0.8;V
+কাঁচা মরিচ;Kacha morich green chili;40;2;9;0.2;V;১ পিস=5
+লেবু;Lebu lemon lime;29;1.1;9;0.3;V;১ পিস=50
+ধনেপাতা;Dhone pata coriander leaves;23;2.1;3.7;0.5;V
+ইলিশ মাছ (কাঁচা);Ilish hilsa raw;273;21.8;0;20.4;F;১ টুকরা=70
+রুই মাছ (কাঁচা);Rui rohu raw;97;16.6;0;1.4;F;১ টুকরা=70
+কাতলা মাছ (কাঁচা);Katla raw;100;17;0;3;F;১ টুকরা=70
+পাঙ্গাস মাছ (কাঁচা);Pangas pangasius raw;118;15;0;6;F;১ টুকরা=70
+তেলাপিয়া (কাঁচা);Telapia tilapia raw;96;20;0;1.7;F;১ পিস=150
+কই মাছ (কাঁচা);Koi climbing perch raw;120;18;0;5;F;১ পিস=60
+শিং মাছ (কাঁচা);Shing stinging catfish raw;96;19;0;1.5;F;১ পিস=50
+মাগুর মাছ (কাঁচা);Magur catfish raw;112;18;0;4;F;১ পিস=70
+চিংড়ি (কাঁচা);Chingri prawn shrimp raw;99;24;0.2;0.3;F;১ পিস=25
+ছোট মাছ (মলা, ঢেলা, পুঁটি);Small fish mola dhela puti;100;17.5;0;2.5;F;১ মুঠো=50
+টুনা (ক্যান);Tuna canned;116;26;0;1;F;১ ক্যান=110
+সার্ডিন (ক্যান);Sardine canned;208;25;0;11;F;১ ক্যান=90
+শুঁটকি মাছ;Shutki dried fish;300;62;0;6;F;১ টুকরা=20
+মাছ ভাজা;Mach bhaja fried fish;220;20;3;14;F;১ টুকরা=60
+মুরগির বুক (কাঁচা);Chicken breast raw;120;22.5;0;2.6;M;১ পিস=150
+মুরগি (চামড়াসহ, কাঁচা);Chicken with skin raw broiler;215;18;0;15;M;১ পিস=150
+মুরগির রান (চামড়া ছাড়া, কাঁচা);Chicken thigh leg skinless raw;120;19.5;0;4;M;১ পিস=120
+মুরগির কলিজা;Murgir kolija chicken liver;119;17;0.7;4.8;M;১ পিস=30
+গরুর মাংস (কাঁচা);Goru mangsho beef raw;150;21;0;7;M;১ টুকরা=50
+খাসির মাংস (কাঁচা);Khashi goat mutton raw;120;20;0;4;M;১ টুকরা=50
+হাঁসের মাংস (চামড়া ছাড়া, কাঁচা);Duck meat skinless raw;132;18;0;5.9;M
+ডিম (সেদ্ধ);Dim egg boiled;155;13;1.1;11;M;১ পিস=50
+ডিম ভাজা/অমলেট;Dim bhaja egg omelette;185;11;1;15;M;১ পিস=60
+হাঁসের ডিম (সেদ্ধ);Hasher dim duck egg boiled;185;12.8;1.5;13.8;M;১ পিস=70
+ডিমের সাদা অংশ;Egg white;52;11;0.7;0.2;M;১ পিস=33
+ডিমের কুসুম;Egg yolk;322;16;3.6;27;M;১ পিস=17
+সসেজ;Sausage;300;12;3;27;M;১ পিস=40
+গরুর দুধ;Goru dudh cow milk;65;3.3;4.8;3.7;L;১ গ্লাস=200|১ কাপ=150
+ছাগলের দুধ;Chagoler dudh goat milk;69;3.6;4.5;4.1;L;১ গ্লাস=200
+মহিষের দুধ;Mohisher dudh buffalo milk;97;3.7;5.2;6.9;L;১ গ্লাস=200
+লো ফ্যাট দুধ;Skim low fat milk;35;3.4;5;0.1;L;১ গ্লাস=200
+গুঁড়া দুধ (ফুল ক্রিম);Gura dudh powder milk full cream;496;26;38;27;L;১ টেবিল চামচ=12
+কনডেন্সড মিল্ক;Condensed milk;321;8;54;8.7;L;১ টেবিল চামচ=20
+টক দই;Tok doi plain yogurt curd;61;3.5;4.7;3.3;L;১ বাটি=150
+মিষ্টি দই;Mishti doi sweet yogurt;140;4;22;4;L;১ বাটি=100
+গ্রিক ইয়োগার্ট;Greek yogurt;59;10;3.6;0.4;L;১ বাটি=170
+ঘোল;Ghol buttermilk;40;3;4.8;1;L;১ গ্লাস=200
+ছানা/পনির;Chhana paneer cottage cheese;265;18;1.2;20;L;১ টুকরা=30
+চিজ (চেডার);Cheddar cheese;403;25;1.3;33;L;১ স্লাইস=20
+ঘি;Ghee;900;0;0;100;L;১ চা চামচ=5|১ টেবিল চামচ=14
+মাখন;Makhon butter;717;0.9;0.1;81;L;১ চা চামচ=5|১ টেবিল চামচ=14
+আইসক্রিম;Ice cream;207;3.5;24;11;L;১ স্কুপ=65
+হুই প্রোটিন পাউডার;Whey protein powder;400;80;8;6;L;১ স্কুপ=30
+আম (পাকা);Aam mango ripe;60;0.8;15;0.4;R;১ পিস (শাঁস)=150
+কাঁচা আম;Kacha aam raw mango;60;0.8;14;0.4;R;১ পিস=150
+কাঁঠাল (পাকা);Kanthal jackfruit ripe;95;1.7;23;0.6;R;১ কোয়া=25
+কলা (পাকা);Kola banana;89;1.1;23;0.3;R;১ পিস=100
+পেঁপে (পাকা);Pepe papaya ripe;43;0.5;11;0.3;R;১ বাটি=150
+পেয়ারা;Peyara guava;68;2.6;14;1;R;১ পিস=100
+আপেল;Apple;52;0.3;14;0.2;R;১ পিস=150
+কমলা/মাল্টা;Komola malta orange;47;0.9;12;0.1;R;১ পিস=130
+আঙুর;Angur grapes;69;0.7;18;0.2;R;১ মুঠো=80
+তরমুজ;Tormuj watermelon;30;0.6;7.6;0.2;R;১ টুকরা=200
+বাঙ্গি;Bangi cantaloupe melon;34;0.8;8;0.2;R;১ টুকরা=150
+আনারস;Anarosh pineapple;50;0.5;13;0.1;R;১ টুকরা=80
+লিচু;Lichu lychee;66;0.8;17;0.4;R;১ পিস=10
+জাম;Jam black plum jamun;62;0.7;14;0.2;R
+বড়ই (কুল);Boroi kul jujube;79;1.2;20;0.2;R;১ পিস=15
+ডালিম;Dalim pomegranate;83;1.7;19;1.2;R;১ বাটি=100
+সফেদা;Safeda sapodilla chiku;83;0.4;20;1.1;R;১ পিস=100
+আতা;Ata custard apple;94;2.1;24;0.3;R;১ পিস=100
+আমলকি;Amloki gooseberry;44;0.9;10;0.6;R;১ পিস=10
+আভোকাডো;Avocado;160;2;9;15;R;১ পিস=150
+নারকেল (কোরা);Narkel coconut fresh;354;3.3;15;33;R;১ টেবিল চামচ=10
+সিঙ্গারা;Singara samosa potato;260;4;30;14;S;১ পিস=70
+সমুচা (মাংস);Samosa meat;290;9;27;16;S;১ পিস=70
+পেঁয়াজু;Peyaju onion fritter;270;6;25;16;S;১ পিস=25
+বেগুনি;Beguni;240;4;20;16;S;১ পিস=40
+আলুর চপ;Aloor chop;220;3.5;25;12;S;১ পিস=60
+ডিমের চপ;Dimer chop egg chop;250;9;18;16;S;১ পিস=90
+ফুচকা;Fuchka puchka;190;3.5;29;7;S;১ পিস=15
+চটপটি;Chotpoti;140;6;22;3;S;১ প্লেট=150
+ঘুগনি/ছোলা ভুনা;Ghugni chola bhuna;150;7;20;4.5;S;১ প্লেট=150
+ঝালমুড়ি;Jhalmuri;220;4;35;7;S;১ ঠোঙ্গা=100
+চিকেন বার্গার;Chicken burger;260;12;30;10;S;১ পিস=150
+পিৎজা;Pizza;266;11;33;10;S;১ স্লাইস=107
+চিকেন রোল/র‍্যাপ;Chicken roll paratha wrap;250;12;27;10;S;১ পিস=150
+স্যান্ডউইচ;Sandwich;230;10;28;9;S;১ পিস=130
+ফ্রাইড চিকেন;Fried chicken;290;17;10;20;S;১ পিস=100
+চিকেন নাগেট;Chicken nuggets;290;15;18;18;S;১ পিস=20
+শিক কাবাব;Seekh kebab;240;18;4;16;S;১ পিস=50
+ফ্রেঞ্চ ফ্রাই;French fries;312;3.4;41;15;S;১ প্যাকেট=100
+আলুর চিপস;Potato chips;536;7;53;35;S;১ প্যাকেট=30
+বিস্কুট (সাধারণ);Biscuit plain;450;7;76;13;S;১ পিস=8
+নিমকি;Nimki;480;7;55;26;S;১ মুঠো=20
+চানাচুর;Chanachur;500;17;40;31;S;১ মুঠো=30
+পপকর্ন;Popcorn;387;13;78;4.5;S;১ বাটি=20
+রসগোল্লা;Roshogolla;190;4;40;1.5;W;১ পিস=40
+সন্দেশ;Sandesh;330;10;45;12;W;১ পিস=30
+জিলাপি;Jilapi jalebi;420;2;70;15;W;১ পিস=30
+গুলাব জামুন;Gulab jamun;310;5;50;10;W;১ পিস=40
+চমচম;Chomchom;330;8;50;11;W;১ পিস=60
+পায়েস/ফিরনি;Payesh firni kheer;140;3.5;22;4;W;১ বাটি=150
+সুজির হালুয়া;Suji halua;290;4;40;13;W;১ বাটি=100
+ভাপা পিঠা;Bhapa pitha;170;3;38;1;W;১ পিস=60
+পাটিসাপটা;Patishapta pitha;220;3;35;8;W;১ পিস=60
+চিতই পিঠা;Chitoi pitha;140;2.5;30;0.8;W;১ পিস=40
+পুলি পিঠা;Puli pitha;240;3;42;7;W;১ পিস=50
+তেলের পিঠা;Teler pitha;330;4;50;13;W;১ পিস=50
+কেক;Cake;350;5;50;15;W;১ স্লাইস=60
+মিল্ক চকলেট;Milk chocolate;535;7.7;59;30;W;১ টুকরা=10
+চিনি;Chini sugar;387;0;100;0;W;১ চা চামচ=5
+মধু;Modhu honey;304;0.3;82;0;W;১ চা চামচ=7
+গুড়;Gur jaggery;383;0.4;98;0.1;W;১ চা চামচ=7
+জ্যাম/জেলি;Jam jelly;250;0.4;65;0.1;W;১ টেবিল চামচ=20
+চা (দুধ-চিনিসহ);Cha milk tea dudh cha;45;1.2;7;1.5;B;১ কাপ=150
+লিকার চা (চিনি ছাড়া);Liquor cha black tea no sugar;1;0;0.3;0;B;১ কাপ=150
+কফি (ব্ল্যাক);Black coffee;1;0.1;0;0;B;১ কাপ=200
+দুধ কফি (চিনিসহ);Milk coffee with sugar;50;1.5;8;1.5;B;১ কাপ=200
+কোল্ড ড্রিংকস;Cold drink soft drink coca cola pepsi;42;0;10.6;0;B;১ ক্যান=330|১ বোতল=250
+ফলের জুস (প্যাকেট);Packaged fruit juice;45;0.5;11;0.1;B;১ প্যাকেট=200
+আখের রস;Akher ros sugarcane juice;70;0.2;18;0;B;১ গ্লাস=250
+লেবুর শরবত (চিনিসহ);Lebur sharbat lemon with sugar;40;0;10;0;B;১ গ্লাস=250
+লাচ্ছি;Lassi;100;3;16;2.5;B;১ গ্লাস=250
+বোরহানি;Borhani;60;3;7;2;B;১ গ্লাস=200
+ডাবের পানি;Daber pani coconut water;19;0.7;3.7;0.2;B;১ গ্লাস=250
+সয়া মিল্ক;Soy milk;33;2.9;1.7;1.8;B;১ গ্লাস=250
+এনার্জি ড্রিংক;Energy drink;45;0;11;0;B;১ ক্যান=250
+সরিষার তেল;Shorishar tel mustard oil;884;0;0;100;O;১ চা চামচ=5|১ টেবিল চামচ=14
+সয়াবিন তেল;Soybean oil tel;884;0;0;100;O;১ চা চামচ=5|১ টেবিল চামচ=14
+ডালডা/বনস্পতি;Dalda vanaspati;900;0;0;100;O;১ টেবিল চামচ=14
+নারকেল তেল;Narkel tel coconut oil;862;0;0;100;O;১ টেবিল চামচ=14
+অলিভ অয়েল;Olive oil;884;0;0;100;O;১ টেবিল চামচ=14
+মেয়োনেজ;Mayonnaise;680;1;0.6;75;O;১ টেবিল চামচ=14
+টমেটো কেচাপ;Tomato ketchup sauce;100;1.2;26;0.1;O;১ টেবিল চামচ=17
+আচার (তেলে);Achar pickle;180;1.5;14;13;O;১ চা চামচ=10
+বেসন;Besan gram flour;387;22;58;6.7;O;১ টেবিল চামচ=10
+তেঁতুল;Tetul tamarind;239;2.8;62;0.6;O;১ টেবিল চামচ=15
+সবজি তরকারি (মিশ্র, তেলে রান্না);Mixed vegetable torkari;70;2;8;3.5;K;১ বাটি=120
+শাক ভাজি;Shak bhaji sauteed greens;70;3;5;4;K;১ বাটি=80
+মাছের ঝোল/তরকারি;Macher jhol fish curry;100;11;3;5;K;১ টুকরা=80
+সরষে ইলিশ;Shorshe ilish mustard hilsa;250;18;3;19;K;১ টুকরা=90
+চিংড়ি ভুনা;Chingri bhuna prawn curry;130;14;4;6.5;K;১ বাটি=100
+মুরগির ঝোল/কারি;Murgir jhol chicken curry;150;14;4;8.5;K;১ পিস=100
+মুরগির ভুনা;Murgir bhuna chicken bhuna;190;18;4;11;K;১ পিস=100
+মুরগির রোস্ট;Chicken roast;200;22;2;11;K;১ পিস=120
+মুরগির কোরমা;Chicken korma;220;15;6;15;K;১ পিস=100
+তন্দুরি চিকেন;Tandoori chicken;150;20;3;6;K;১ পিস=120
+গরুর ভুনা;Goru bhuna beef bhuna;210;22;4;12;K;১ পিস=50|১ বাটি=120
+খাসির ভুনা/রেজালা;Khashi bhuna rezala mutton curry;200;20;3;12;K;১ পিস=50|১ বাটি=120
+ডিম ভুনা/কারি;Dim bhuna egg curry;150;9;5;10;K;১ পিস=100
+হালিম;Haleem;150;10;12;7;K;১ বাটি=200
+কাচ্চি বিরিয়ানি;Kacchi biryani;200;10;22;8;K;১ প্লেট=350
+মুরগির বিরিয়ানি/মোরগ পোলাও;Chicken biryani morog polao;180;8;24;6;K;১ প্লেট=300
+তেহারি;Tehari;190;8;25;6.5;K;১ প্লেট=300
+`;
+const FOODS=RAW.trim().split('\n').map(l=>{
+  const a=l.split(';');
+  return {bn:a[0],en:a[1],k:+a[2],p:+a[3],c:+a[4],f:+a[5],cat:a[6],
+    units:(a[7]?a[7].split('|'):[]).map(u=>{const i=u.lastIndexOf('=');return {l:u.slice(0,i),g:+u.slice(i+1)}})};
+});
+
+/* ---------- ছোট সহায়ক ---------- */
+const BD='০১২৩৪৫৬৭৮৯';
+const nf=(n,d=0)=>{const m=Math.pow(10,d);let r=Math.round((+n||0)*m)/m;return String(r).replace(/\d/g,x=>BD[x]).replace('-','−')};
+const num=s=>{const v=parseFloat(String(s).replace(/[০-৯]/g,d=>BD.indexOf(d)).replace(/[,،]/g,'.'));return isNaN(v)?NaN:v};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=id=>document.getElementById(id);
+const key=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const fromKey=k=>{const a=k.split('-');return new Date(+a[0],+a[1]-1,+a[2])};
+const addDays=(k,n)=>{const d=fromKey(k);d.setDate(d.getDate()+n);return key(d)};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const fmtDate=k=>{try{return fromKey(k).toLocaleDateString('bn-BD',{weekday:'long',day:'numeric',month:'long'})}catch(e){return k}};
+const fmtShort=k=>nf(fromKey(k).getDate());
+const fmtTime=t=>{try{return new Date(t).toLocaleTimeString('bn-BD',{hour:'numeric',minute:'2-digit'})}catch(e){return ''}};
+function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true},2600)}
+const MEALS=[['B','সকালের নাস্তা'],['L','দুপুরের খাবার'],['S','বিকেলের নাস্তা'],['D','রাতের খাবার']];
+const mealNow=()=>{const h=new Date().getHours();return h<11?'B':h<16?'L':h<19?'S':'D'};
+
+/* ---------- অবস্থা ও সংরক্ষণ ---------- */
+const LS='pushti-khata-v1';
+const S={settings:{kcal:2000,protein:100,water:3000,custom:[],recent:[]},days:{},date:key(new Date()),tab:'today',ready:false,mode:'local',sel:null,cat:'all',q:''};
+let col=null,chain=Promise.resolve();
+const emptyDay=()=>({e:[],w:[]});
+const day=k=>S.days[k]||(S.days[k]=emptyDay());
+function persist(id){
+  if(S.mode==='cloud'){
+    chain=chain.then(()=>col.doc(id).set(JSON.parse(JSON.stringify(id==='settings'?S.settings:S.days[id.slice(2)])))).catch(()=>toast('সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।'));
+  }else{
+    try{localStorage.setItem(LS,JSON.stringify({settings:S.settings,days:S.days}))}catch(e){}
+  }
+}
+const saveDay=k=>persist('d-'+k);
+const saveSettings=()=>persist('settings');
+async function boot(){
+  render();
+  let cloud=false;
+  try{
+    if(window.claude&&window.claude.use){
+      const lim=new Promise(r=>setTimeout(()=>r(null),6000));
+      const got=await Promise.race([Promise.all([window.claude.use('user'),window.claude.use('db')]),lim]);
+      if(got&&got[0]&&got[1]){
+        const id=await got[0].id();
+        if(id){
+          col=got[1].collection('data/users/'+id);
+          const snap=await col.get();
+          snap.docs.forEach(d=>{const v=d.data();if(!v)return;
+            if(d.id==='settings')Object.assign(S.settings,v);
+            else if(d.id.indexOf('d-')===0)S.days[d.id.slice(2)]={e:v.e||[],w:v.w||[]};
+          });
+          cloud=true;
+        }
+      }
+    }
+  }catch(e){cloud=false;col=null}
+  S.mode=cloud?'cloud':'local';
+  if(!cloud){
+    try{const v=JSON.parse(localStorage.getItem(LS)||'null');if(v){Object.assign(S.settings,v.settings||{});S.days=v.days||{}}}catch(e){}
+  }
+  S.settings.custom=S.settings.custom||[];S.settings.recent=S.settings.recent||[];
+  S.ready=true;render();
+}
+
+/* ---------- হিসাব ---------- */
+function totals(d){return d.e.reduce((a,x)=>{const m=x.g/100;a.k+=x.k*m;a.p+=x.p*m;a.c+=x.c*m;a.f+=x.f*m;return a},{k:0,p:0,c:0,f:0})}
+const waterOf=d=>d.w.reduce((a,x)=>a+x.ml,0);
+function goals(){const g=S.settings;const fat=Math.round(g.kcal*0.25/9);const carb=Math.max(0,Math.round((g.kcal-4*g.protein-9*fat)/4));return {k:g.kcal,p:g.protein,f:fat,c:carb,w:g.water}}
+const allFoods=()=>S.settings.custom.map(c=>({bn:c.n,en:'',k:c.k,p:c.p,c:c.c,f:c.f,cat:'U',units:[],custom:true,id:c.id})).concat(FOODS);
+
+/* ---------- আজ ট্যাব ---------- */
+function renderToday(){
+  const d=day(S.date),t=totals(d),g=goals(),w=waterOf(d);
+  const pct=v=>Math.min(100,g.k?v/g.k*100:0);
+  const over=t.k>g.k;
+  const rem=over?`লক্ষ্যের চেয়ে <b style="color:var(--warn)">${nf(t.k-g.k)} kcal</b> বেশি`:`আর <b>${nf(g.k-t.k)} kcal</b> বাকি`;
+  const mac=(cls,name,val,goal,clr)=>`<div class="macro ${cls}"><div class="n"><span class="dot" style="background:var(--${clr})"></span>${name}</div><div class="bar"><i style="width:${Math.min(100,goal?val/goal*100:0)}%"></i></div><div class="v">${nf(val)} / ${nf(goal)} গ্রাম</div></div>`;
+  $('summary').innerHTML=`
+    <div class="hero"><span class="big">${nf(t.k)}</span><span class="of">/ ${nf(g.k)} kcal</span></div>
+    <div class="bar ${over?'over':''}" role="progressbar" aria-valuenow="${Math.round(t.k)}" aria-valuemax="${g.k}"><i style="width:${pct(t.k)}%"></i></div>
+    <div>${rem}</div>
+    <div class="macros">${mac('pro','প্রোটিন',t.p,g.p,'pro')}${mac('carb','কার্ব',t.c,g.c,'carb')}${mac('fat','ফ্যাট',t.f,g.f,'fat')}</div>`;
+  $('waterMini').innerHTML=`<span style="font-size:22px" aria-hidden="true">💧</span><span><b>পানি</b><br><span class="small muted">${nf(w)} / ${nf(g.w)} মিলি</span></span><span class="bar"><i style="width:${Math.min(100,g.w?w/g.w*100:0)}%"></i></span>`;
+  let h='';
+  if(!d.e.length){
+    h=`<div class="empty"><div style="font-family:var(--font-display);font-size:20px">এই দিনে এখনো কিছু লেখা হয়নি</div><div class="muted">খাবারের নাম খুঁজে গ্রাম লিখলেই ক্যালোরি, প্রোটিন, কার্ব ও ফ্যাট হিসাব হয়ে যাবে।</div><button class="btn" data-go="add">প্রথম খাবার যোগ করুন</button></div>`;
+  }else{
+    h='<h2>খাবারের তালিকা</h2>';
+    MEALS.forEach(([mk,ml])=>{
+      const es=d.e.filter(x=>x.m===mk);if(!es.length)return;
+      const sum=es.reduce((a,x)=>a+x.k*x.g/100,0);
+      h+=`<div class="meal"><div class="meal-head"><b>${ml}</b><span class="muted small">${nf(sum)} kcal</span></div>`;
+      es.forEach(x=>{const m=x.g/100;
+        h+=`<div class="entry"><div class="nm">${esc(x.n)}</div><input class="gin" type="text" inputmode="decimal" value="${nf(x.g,1)}" data-edit="${x.id}" aria-label="${esc(x.n)} গ্রাম"><span class="kc">${nf(x.k*m)}<span class="small muted"> kcal</span></span>
+        <div class="mc">${nf(x.g,1)} গ্রাম · প্রোটিন ${nf(x.p*m,1)} · কার্ব ${nf(x.c*m,1)} · ফ্যাট ${nf(x.f*m,1)}<button class="x" data-del="${x.id}" aria-label="মুছুন" style="float:right;margin-top:-8px">✕</button></div></div>`;
+      });
+      h+='</div>';
+    });
+    h+='<button class="btn ghost" data-go="add">+ আরও খাবার যোগ করুন</button>';
+  }
+  $('log').innerHTML=h;
+}
+
+/* ---------- খাবার যোগ ট্যাব ---------- */
+function renderCats(){
+  const cats=['all'].concat(Object.keys(CATS).filter(c=>c!=='U'||S.settings.custom.length));
+  $('cats').innerHTML=cats.map(c=>`<button class="chip" data-cat="${c}" aria-pressed="${S.cat===c}">${c==='all'?'সব':CATS[c]}</button>`).join('');
+}
+function matchFoods(){
+  const q=S.q.toLowerCase().replace(/\s+/g,'');
+  let list=allFoods();
+  if(S.cat!=='all')list=list.filter(f=>f.cat===S.cat);
+  if(!q){
+    if(S.cat==='all'){
+      const rec=S.settings.recent.map(n=>list.find(f=>f.bn===n)).filter(Boolean);
+      return {title:rec.length?'সম্প্রতি ব্যবহার করেছেন':'জনপ্রিয় খাবার',list:rec.length?rec:['ভাত (সাদা, সেদ্ধ)','ডাল (রান্না, ঘন)','ডিম (সেদ্ধ)','আটার রুটি','কলা (পাকা)','মুরগির ঝোল/কারি','ইলিশ মাছ (কাঁচা)','সবজি তরকারি (মিশ্র, তেলে রান্না)','গরুর দুধ','টক দই'].map(n=>list.find(f=>f.bn===n)).filter(Boolean)};
+    }
+    return {title:CATS[S.cat],list};
+  }
+  const sc=f=>{const b=f.bn.toLowerCase().replace(/\s+/g,''),e=f.en.toLowerCase().replace(/\s+/g,'');
+    if(b.startsWith(q))return 0;if(e.startsWith(q))return 1;if(b.includes(q))return 2;if(e.includes(q))return 3;return 9};
+  const r=list.map(f=>[sc(f),f]).filter(x=>x[0]<9).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+  return {title:nf(r.length)+'টি ফলাফল',list:r};
+}
+function renderResults(){
+  const {title,list}=matchFoods();
+  if(!list.length){$('results').innerHTML=`<div class="empty"><div>"${esc(S.q)}" নামে কিছু পাওয়া যায়নি</div><div class="muted small">অন্য বানানে লিখুন, ইংরেজিতে চেষ্টা করুন, অথবা "লক্ষ্য" ট্যাবে গিয়ে নিজের খাবার যোগ করুন।</div></div>`;return}
+  $('results').innerHTML=`<h3 style="margin:4px 0">${title}</h3>`+list.slice(0,60).map(f=>`<button class="food" data-food="${esc(f.bn)}"><span class="l"><span class="nm">${esc(f.bn)}${f.custom?'<span class="tag">আমার</span>':''}</span><br><span class="en">${esc(f.en||CATS[f.cat])}</span></span><span class="r"><b>${nf(f.k)} kcal</b>প্রো ${nf(f.p,1)} · কার্ব ${nf(f.c,1)} · ফ্যাট ${nf(f.f,1)}</span></button>`).join('')+(list.length>60?'<div class="note" style="padding:8px 0">আরও দেখতে নাম লিখে খুঁজুন।</div>':'');
+}
+function renderComposer(){
+  const f=S.sel,box=$('composer');
+  if(!f){box.hidden=true;box.innerHTML='';return}
+  const units=[{l:'১০০ গ্রাম',g:100}].concat(f.units);
+  box.hidden=false;
+  box.className='composer';
+  box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:8px"><div><b style="font-size:18px">${esc(f.bn)}</b><div class="small muted">প্রতি ১০০ গ্রামে ${nf(f.k)} kcal</div></div><button class="x" id="cClose" aria-label="বন্ধ করুন">✕</button></div>
+    <div class="row"><label class="f">পরিমাণ (গ্রাম)<input type="text" inputmode="decimal" id="gIn" value="${nf(units[units.length>1?1:0].g,1)}"></label>
+    <label class="f">কোন বেলা<select id="mealSel">${MEALS.map(m=>`<option value="${m[0]}" ${m[0]===mealNow()?'selected':''}>${m[1]}</option>`).join('')}</select></label></div>
+    <div class="chips">${units.map(u=>`<button class="chip" data-unit="${u.g}">${esc(u.l)}${u.l==='১০০ গ্রাম'?'':' ('+nf(u.g,1)+' গ্রাম)'}</button>`).join('')}</div>
+    <div class="prev" id="prev4"></div>
+    <button class="btn" id="cAdd">${fmtDate(S.date)} এ যোগ করুন</button>`;
+  updatePrev();
+}
+function updatePrev(){
+  const f=S.sel;if(!f||!$('prev4'))return;
+  const g=num($('gIn').value)||0,m=g/100;
+  $('prev4').innerHTML=`<div><b>${nf(f.k*m)}</b><span>kcal</span></div><div><b>${nf(f.p*m,1)}</b><span>প্রোটিন</span></div><div><b>${nf(f.c*m,1)}</b><span>কার্ব</span></div><div><b>${nf(f.f*m,1)}</b><span>ফ্যাট</span></div>`;
+}
+function addEntry(){
+  if(!S.ready){toast('ডেটা লোড হচ্ছে, একটু অপেক্ষা করুন');return}
+  const f=S.sel,g=num($('gIn').value);
+  if(!f||!(g>0)||g>5000){toast('গ্রামের পরিমাণ সঠিকভাবে লিখুন');return}
+  day(S.date).e.push({id:uid(),n:f.bn,g:g,k:f.k,p:f.p,c:f.c,f:f.f,m:$('mealSel').value,t:Date.now()});
+  S.settings.recent=[f.bn].concat(S.settings.recent.filter(n=>n!==f.bn)).slice(0,12);
+  saveDay(S.date);saveSettings();
+  toast(f.bn+' যোগ হয়েছে');
+  S.sel=null;render();
+}
+
+/* ---------- পানি ---------- */
+function renderWater(){
+  const d=day(S.date),w=waterOf(d),g=goals().w,pc=Math.min(100,g?w/g*100:0);
+  const left=Math.max(0,g-w);
+  $('waterCard').innerHTML=`<h2>পানি খাওয়া</h2>
+    <div class="tank-wrap"><div class="tank" role="img" aria-label="লক্ষ্যের ${nf(pc)} শতাংশ"><div class="fill" style="height:${pc}%"></div><div class="pc">${nf(pc)}%</div></div>
+    <div><div class="wnum">${nf(w)} মিলি</div><div class="muted">লক্ষ্য ${nf(g)} মিলি</div><div style="margin-top:6px">${left?`আর ${nf(left)} মিলি (প্রায় ${nf(left/250,1)} গ্লাস) বাকি`:'<b style="color:var(--water)">আজকের লক্ষ্য পূর্ণ হয়েছে</b>'}</div></div></div>
+    <div class="wbtns">
+      <button data-w="150">১ কাপ<span>১৫০ মিলি</span></button>
+      <button data-w="250">১ গ্লাস<span>২৫০ মিলি</span></button>
+      <button data-w="500">ছোট বোতল<span>৫০০ মিলি</span></button>
+      <button data-w="1000">বড় বোতল<span>১০০০ মিলি</span></button>
+    </div>
+    <div class="row" style="align-items:end"><label class="f">নিজের পরিমাণ (মিলি)<input type="text" inputmode="numeric" id="wCustom" placeholder="যেমন ৩৫০"></label><button class="btn ghost" id="wAdd" style="flex:0 0 auto">যোগ করুন</button></div>
+    <div class="wlog">${d.w.length?d.w.slice().reverse().map(x=>`<div><span>${fmtTime(x.t)} · ${nf(x.ml)} মিলি</span><button class="x" data-wdel="${x.id}" aria-label="মুছুন">✕</button></div>`).join(''):'<div class="muted small">এই দিনে এখনো পানি লেখা হয়নি।</div>'}</div>`;
+}
+function addWater(ml){
+  if(!S.ready){toast('ডেটা লোড হচ্ছে, একটু অপেক্ষা করুন');return}
+  if(!(ml>0)||ml>3000){toast('১ থেকে ৩০০০ মিলির মধ্যে লিখুন');return}
+  day(S.date).w.push({id:uid(),ml:ml,t:Date.now()});saveDay(S.date);render();
+}
+
+/* ---------- রিপোর্ট ---------- */
+function chart(vals,labels,goal,cls,fmt){
+  const W=340,H=170,L=8,B=26,T=22,n=vals.length,bw=(W-L*2)/n;
+  const mx=Math.max(goal||0,...vals,1)*1.1;
+  const y=v=>T+(H-T-B)*(1-v/mx);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="গত ৭ দিনের চার্ট">`;
+  s+=`<line class="ax" x1="${L}" x2="${W-L}" y1="${H-B}" y2="${H-B}"/>`;
+  if(goal)s+=`<line class="gl" x1="${L}" x2="${W-L}" y1="${y(goal)}" y2="${y(goal)}"/><text x="${W-L}" y="${y(goal)-3}" text-anchor="end">লক্ষ্য ${fmt(goal)}</text>`;
+  vals.forEach((v,i)=>{const x=L+i*bw+bw*0.18,w=bw*0.64,yy=y(v);
+    s+=`<rect class="${cls}" x="${x}" y="${yy}" width="${w}" height="${Math.max(0,H-B-yy)}" rx="4"/>`;
+    if(v>0)s+=`<text class="val" x="${x+w/2}" y="${yy-4}" text-anchor="middle">${fmt(v)}</text>`;
+    s+=`<text x="${x+w/2}" y="${H-9}" text-anchor="middle">${labels[i]}</text>`;});
+  return s+'</svg>';
+}
+function renderReport(){
+  const keys=[];for(let i=6;i>=0;i--)keys.push(addDays(key(new Date()),-i));
+  const ks=keys.map(k=>totals(day(k))),ws=keys.map(k=>waterOf(day(k))),lb=keys.map(fmtShort);
+  const logged=keys.map((k,i)=>S.days[k]&&S.days[k].e.length?i:-1).filter(i=>i>=0);
+  const avg=(arr,idx)=>idx.length?idx.reduce((a,i)=>a+arr[i],0)/idx.length:0;
+  const g=goals();
+  const wIdx=ws.map((v,i)=>v>0?i:-1).filter(i=>i>=0);
+  $('reportCard').innerHTML=`<h2>গত ৭ দিন</h2>
+    <h3>ক্যালোরি (kcal)</h3>${chart(ks.map(x=>Math.round(x.k)),lb,g.k,'b1',v=>nf(v))}
+    <h3>পানি (লিটার)</h3>${chart(ws.map(v=>v/1000),lb,g.w/1000,'b2',v=>nf(v,1))}
+    <div class="stats">
+      <div><span class="small muted">গড় ক্যালোরি</span><b>${nf(avg(ks.map(x=>x.k),logged))}</b><span class="small muted">${nf(logged.length)} দিনের হিসাবে</span></div>
+      <div><span class="small muted">গড় প্রোটিন</span><b>${nf(avg(ks.map(x=>x.p),logged))} গ্রাম</b></div>
+      <div><span class="small muted">গড় কার্ব</span><b>${nf(avg(ks.map(x=>x.c),logged))} গ্রাম</b></div>
+      <div><span class="small muted">গড় ফ্যাট</span><b>${nf(avg(ks.map(x=>x.f),logged))} গ্রাম</b></div>
+      <div style="grid-column:1/-1"><span class="small muted">গড় পানি</span><b>${nf(avg(ws,wIdx)/1000,1)} লিটার</b></div>
+    </div>
+    <div class="note">যে দিনে কিছু লেখা হয়নি সেই দিন গড়ে ধরা হয় না।</div>`;
+}
+
+/* ---------- লক্ষ্য ট্যাব ---------- */
+function renderGoals(){
+  const s=S.settings;
+  if(document.activeElement.id!=='gK')$('gK').value=nf(s.kcal);
+  if(document.activeElement.id!=='gP')$('gP').value=nf(s.protein);
+  if(document.activeElement.id!=='gW')$('gW').value=nf(s.water);
+  const g=goals();
+  $('gDerived').textContent=`হিসাব: ফ্যাট প্রায় ${nf(g.f)} গ্রাম (ক্যালোরির ২৫%), কার্ব প্রায় ${nf(g.c)} গ্রাম।`;
+  $('cfList').innerHTML=s.custom.map(c=>`<div><span>${esc(c.n)} <span class="small muted">· ${nf(c.k)} kcal/১০০ গ্রাম</span></span><button class="x" data-cfdel="${c.id}" aria-label="মুছুন">✕</button></div>`).join('');
+  $('storeStatus').textContent=S.mode==='cloud'?'আপনার লগ আপনার অ্যাকাউন্টে সংরক্ষিত হচ্ছে, অন্য ডিভাইসেও পাবেন।':'আপনার লগ শুধু এই ব্রাউজারে সংরক্ষিত হচ্ছে। ব্রাউজারের ডেটা মুছলে লগও মুছে যাবে।';
+}
+function calc(){
+  const sex=$('cSex').value,age=num($('cAge').value),w=num($('cW').value),h=num($('cH').value),act=+$('cAct').value,mode=+$('cMode').value;
+  if(!(age>10&&age<100&&w>25&&w<300&&h>100&&h<230)){$('calcOut').innerHTML='<div class="note" style="color:var(--warn)">বয়স, ওজন ও উচ্চতা সঠিকভাবে লিখুন।</div>';return}
+  const bmr=10*w+6.25*h-5*age+(sex==='m'?5:-161),tdee=bmr*act;
+  const floor=sex==='m'?1500:1200;
+  let target=Math.round((tdee+mode)/10)*10,note='';
+  if(target<floor){target=floor;note=' (নিরাপদ সর্বনিম্ন সীমায় রাখা হয়েছে)'}
+  const prot=Math.round(w*(mode<0?1.8:1.6)/5)*5,water=Math.max(2000,Math.round(w*35/100)*100);
+  $('calcOut').innerHTML=`<div class="stats" style="margin-top:6px"><div><span class="small muted">BMR</span><b>${nf(bmr)}</b></div><div><span class="small muted">দৈনিক খরচ (TDEE)</span><b>${nf(tdee)}</b></div></div>
+    <div style="margin:10px 0">প্রস্তাবিত লক্ষ্য: <b>${nf(target)} kcal</b>${note}, প্রোটিন <b>${nf(prot)} গ্রাম</b>, পানি <b>${nf(water)} মিলি</b></div>
+    <button class="btn sm" id="useCalc" data-k="${target}" data-p="${prot}" data-w="${water}">এটি আমার লক্ষ্য করুন</button>
+    <div class="note" style="margin-top:8px">Mifflin-St Jeor সূত্র। এটি আনুমানিক। দুই সপ্তাহ লগ রেখে ওজন না নড়লে ক্যালোরি ১০০–২০০ কমান বা বাড়ান।</div>`;
+}
+
+/* ---------- ট্যাব ও রেন্ডার ---------- */
+const TABS=[['today','আজ','<path d="M4 19V8M9 19V4M14 19v-8M19 19V6"/>'],['add','যোগ করুন','<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>'],['water','পানি','<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>'],['report','রিপোর্ট','<path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/>'],['goals','লক্ষ্য','<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>']];
+function renderNav(){$('nav').innerHTML=TABS.map(t=>`<button data-tab="${t[0]}" ${S.tab===t[0]?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${t[2]}</svg>${t[1]}</button>`).join('')}
+function render(){
+  $('dateLabel').textContent=fmtDate(S.date);
+  $('next').disabled=S.date>=key(new Date());
+  TABS.forEach(t=>{$('v-'+t[0]).hidden=S.tab!==t[0]});
+  renderNav();
+  if(S.tab==='today')renderToday();
+  if(S.tab==='add'){renderCats();renderResults();renderComposer()}
+  if(S.tab==='water')renderWater();
+  if(S.tab==='report')renderReport();
+  if(S.tab==='goals')renderGoals();
+}
+function setTab(t){
+  if(!TABS.some(x=>x[0]===t))t='today';
+  S.tab=t;
+  try{if(location.hash!=='#'+t)history.replaceState(null,'','#'+t)}catch(e){}
+  render();window.scrollTo(0,0);
+}
+
+/* ---------- ইভেন্ট ---------- */
+document.addEventListener('click',e=>{
+  const el=e.target.closest('button');if(!el)return;
+  if(el.dataset.tab)return setTab(el.dataset.tab);
+  if(el.dataset.go)return setTab(el.dataset.go);
+  if(el.id==='waterMini')return setTab('water');
+  if(el.id==='prev'){S.date=addDays(S.date,-1);return render()}
+  if(el.id==='next'){if(S.date<key(new Date())){S.date=addDays(S.date,1);render()}return}
+  if(el.id==='todayBtn'){S.date=key(new Date());return render()}
+  if(el.dataset.cat){S.cat=el.dataset.cat;return render()}
+  if(el.dataset.food){S.sel=allFoods().find(f=>f.bn===el.dataset.food)||null;renderComposer();const c=$('composer');if(c&&!c.hidden){c.scrollIntoView({block:'nearest',behavior:'smooth'});const gi=$('gIn');if(gi){gi.focus();gi.select()}}return}
+  if(el.id==='cClose'){S.sel=null;return renderComposer()}
+  if(el.dataset.unit){$('gIn').value=nf(+el.dataset.unit,1);return updatePrev()}
+  if(el.id==='cAdd')return addEntry();
+  if(el.dataset.del){const d=day(S.date);d.e=d.e.filter(x=>x.id!==el.dataset.del);saveDay(S.date);return render()}
+  if(el.dataset.w)return addWater(+el.dataset.w);
+  if(el.id==='wAdd'){const v=num($('wCustom').value);return addWater(v)}
+  if(el.dataset.wdel){const d=day(S.date);d.w=d.w.filter(x=>x.id!==el.dataset.wdel);saveDay(S.date);return render()}
+  if(el.id==='saveGoals'){
+    const k=num($('gK').value),p=num($('gP').value),w=num($('gW').value);
+    if(!(k>=800&&k<=6000&&p>=20&&p<=400&&w>=500&&w<=8000)){toast('মান সঠিক সীমায় লিখুন (kcal ৮০০–৬০০০, প্রোটিন ২০–৪০০, পানি ৫০০–৮০০০)');return}
+    Object.assign(S.settings,{kcal:Math.round(k),protein:Math.round(p),water:Math.round(w)});saveSettings();toast('লক্ষ্য সংরক্ষিত হয়েছে');return render();
+  }
+  if(el.id==='calc')return calc();
+  if(el.id==='useCalc'){Object.assign(S.settings,{kcal:+el.dataset.k,protein:+el.dataset.p,water:+el.dataset.w});saveSettings();toast('লক্ষ্য বদলানো হয়েছে');return render()}
+  if(el.id==='cfAdd'){
+    const n=$('cfN').value.trim(),k=num($('cfK').value),p=num($('cfP').value)||0,c=num($('cfC').value)||0,f=num($('cfF').value)||0;
+    if(!n||!(k>=0)||k>950){toast('নাম ও প্রতি ১০০ গ্রামের kcal লিখুন');return}
+    if(allFoods().some(x=>x.bn===n)){toast('এই নামে আগেই একটি খাবার আছে, অন্য নাম দিন');return}
+    S.settings.custom.push({id:uid(),n:n,k:k,p:p,c:c,f:f});saveSettings();
+    ['cfN','cfK','cfP','cfC','cfF'].forEach(i=>$(i).value='');toast(n+' যোগ হয়েছে');return render();
+  }
+  if(el.dataset.cfdel){S.settings.custom=S.settings.custom.filter(x=>x.id!==el.dataset.cfdel);saveSettings();return render()}
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='q'){S.q=e.target.value;renderResults()}
+  if(e.target.id==='gIn')updatePrev();
+});
+document.addEventListener('change',e=>{
+  const id=e.target.dataset&&e.target.dataset.edit;
+  if(id){const x=day(S.date).e.find(v=>v.id===id),g=num(e.target.value);
+    if(x&&g>0&&g<=5000){x.g=g;saveDay(S.date)}else toast('গ্রামের পরিমাণ সঠিকভাবে লিখুন');render()}
+});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  if(e.target.id==='gIn')addEntry();
+  if(e.target.id==='wCustom')addWater(num(e.target.value));
+});
+window.addEventListener('hashchange',()=>setTab(location.hash.slice(1)));
+
+const h0=location.hash.slice(1);if(TABS.some(t=>t[0]===h0))S.tab=h0;
+boot();
+})();
+</script>
+
+</body></html>
