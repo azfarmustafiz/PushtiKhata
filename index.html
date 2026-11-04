@@ -226,6 +226,8 @@ svg.chart .b1{fill:var(--kcal)} svg.chart .b2{fill:var(--water)} svg.chart .gl{s
     <div class="card">
       <h2>তথ্য</h2>
       <div class="status" id="storeStatus"></div>
+      <div class="row"><button class="btn ghost sm" id="exportData" type="button">ব্যাকআপ ডাউনলোড</button><button class="btn ghost sm" id="importData" type="button">ব্যাকআপ ফিরিয়ে আনুন</button><input type="file" id="backupFile" accept="application/json,.json" hidden></div>
+      <div class="note">ব্যাকআপ ফিরিয়ে আনলে আগের লগ মুছে যাবে না; একই আইডির রেকর্ড একবারই থাকবে।</div>
       <div class="note">খাবারের মান প্রতি ১০০ গ্রামে এবং আনুমানিক। এগুলো সাধারণ খাদ্য উপাদান তালিকা (বাংলাদেশের INFS, ভারতের IFCT ও USDA) থেকে নেওয়া গড় মান, প্রতিটি লাইভ যাচাই করা নয়। রান্নায় তেল, ঘি ও মসলার পরিমাণে একই পদের ক্যালোরি অনেক বদলে যায়। বাড়িতে রান্না করলে এক বাটির ওজন মেপে নেওয়া সবচেয়ে নির্ভরযোগ্য। ডায়াবেটিস বা অন্য রোগ থাকলে খাদ্যতালিকা ঠিক করার আগে চিকিৎসক বা পুষ্টিবিদের সঙ্গে কথা বলুন।</div>
     </div>
   </section>
@@ -504,42 +506,37 @@ const emptyDay=()=>({e:[],w:[]});
 const day=k=>S.days[k]||(S.days[k]=emptyDay());
 function persist(id){
   if(S.mode==='cloud'){
-    chain=chain.then(()=>col.doc(id).set(JSON.parse(JSON.stringify(id==='settings'?S.settings:S.days[id.slice(2)])))).catch(()=>toast('সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।'));
-  }else{
-    try{localStorage.setItem(LS,JSON.stringify({settings:S.settings,days:S.days}))}catch(e){}
+    chain=chain.catch(()=>{}).then(()=>col.doc(id).set(JSON.parse(JSON.stringify(id==='settings'?S.settings:S.days[id.slice(2)]))))
+      .catch(()=>{toast('ক্লাউডে সংরক্ষণ হয়নি। ইন্টারনেট পরীক্ষা করে আবার চেষ্টা করুন।');throw new Error('cloud-save-failed')});
+    return chain;
   }
+  try{localStorage.setItem(LS,JSON.stringify({settings:S.settings,days:S.days}));return Promise.resolve(true)}
+  catch(e){toast('সংরক্ষণ ব্যর্থ: ব্রাউজারের স্টোরেজ পূর্ণ বা বন্ধ। ব্যাকআপ নিন।');return Promise.reject(e)}
 }
 const saveDay=k=>persist('d-'+k);
 const saveSettings=()=>persist('settings');
-async function boot(){
-  render();
-  let cloud=false;
-  try{
-    if(window.claude&&window.claude.use){
-      const lim=new Promise(r=>setTimeout(()=>r(null),6000));
-      const got=await Promise.race([Promise.all([window.claude.use('user'),window.claude.use('db')]),lim]);
-      if(got&&got[0]&&got[1]){
-        const id=await got[0].id();
-        if(id){
-          col=got[1].collection('data/users/'+id);
-          const snap=await col.get();
-          snap.docs.forEach(d=>{const v=d.data();if(!v)return;
-            if(d.id==='settings')Object.assign(S.settings,v);
-            else if(d.id.indexOf('d-')===0)S.days[d.id.slice(2)]={e:v.e||[],w:v.w||[]};
-          });
-          cloud=true;
-        }
-      }
-    }
-  }catch(e){cloud=false;col=null}
-  S.mode=cloud?'cloud':'local';
-  if(!cloud){
-    try{const v=JSON.parse(localStorage.getItem(LS)||'null');if(v){Object.assign(S.settings,v.settings||{});S.days=v.days||{}}}catch(e){}
+function normalizeData(){
+  const st=S.settings||{};
+  S.settings={kcal:2000,protein:100,water:2500,custom:[],recent:[],...st};
+  S.settings.custom=Array.isArray(S.settings.custom)?S.settings.custom.filter(x=>x&&typeof x.n==='string').map(x=>({id:String(x.id||uid()),n:x.n,k:Number(x.k)||0,p:Number(x.p)||0,c:Number(x.c)||0,f:Number(x.f)||0})):[];
+  S.settings.recent=Array.isArray(S.settings.recent)?S.settings.recent.filter(x=>typeof x==='string').slice(0,30):[];
+  if(!Number.isFinite(+S.settings.kcal)||S.settings.kcal<=0)S.settings.kcal=2000;
+  if(!Number.isFinite(+S.settings.protein)||S.settings.protein<0)S.settings.protein=100;
+  if(!Number.isFinite(+S.settings.water)||S.settings.water<0)S.settings.water=2500;
+  const clean={};
+  if(S.days&&typeof S.days==='object'&&!Array.isArray(S.days))for(const [k,v] of Object.entries(S.days)){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||!v||typeof v!=='object')continue;
+    clean[k]={e:Array.isArray(v.e)?v.e.filter(x=>x&&Number.isFinite(+x.g)&&+x.g>0).map(x=>({...x,id:String(x.id||uid()),n:String(x.n||'খাবার'),g:+x.g,k:+x.k||0,p:+x.p||0,c:+x.c||0,f:+x.f||0,m:MEALS.some(m=>m[0]===x.m)?x.m:'D'})):[],w:Array.isArray(v.w)?v.w.filter(x=>x&&Number.isFinite(+x.ml)&&+x.ml>0).map(x=>({...x,id:String(x.id||uid()),ml:+x.ml,t:+x.t||Date.now()})):[]};
   }
-  S.settings.custom=S.settings.custom||[];S.settings.recent=S.settings.recent||[];
-  S.ready=true;render();
+  S.days=clean;
 }
-
+async function boot(){
+  render();let cloud=false;
+  try{if(window.claude&&window.claude.use){const lim=new Promise(r=>setTimeout(()=>r(null),6000));const got=await Promise.race([Promise.all([window.claude.use('user'),window.claude.use('db')]),lim]);if(got&&got[0]&&got[1]){const id=await got[0].id();if(id){col=got[1].collection('data/users/'+id);const snap=await col.get();snap.docs.forEach(d=>{const v=d.data();if(!v)return;if(d.id==='settings')Object.assign(S.settings,v);else if(d.id.indexOf('d-')===0)S.days[d.id.slice(2)]={e:v.e||[],w:v.w||[]}});cloud=true}}}}catch(e){cloud=false;col=null}
+  S.mode=cloud?'cloud':'local';
+  if(!cloud){try{const v=JSON.parse(localStorage.getItem(LS)||'null');if(v){Object.assign(S.settings,v.settings||{});S.days=v.days||{}}}catch(e){toast('পুরোনো ডেটা পড়া যায়নি। ব্যাকআপ থাকলে ফিরিয়ে আনুন।')}}
+  normalizeData();S.ready=true;render();
+}
 /* ---------- হিসাব ---------- */
 function totals(d){return d.e.reduce((a,x)=>{const m=x.g/100;a.k+=x.k*m;a.p+=x.p*m;a.c+=x.c*m;a.f+=x.f*m;return a},{k:0,p:0,c:0,f:0})}
 const waterOf=d=>d.w.reduce((a,x)=>a+x.ml,0);
@@ -624,15 +621,14 @@ function updatePrev(){
   const g=num($('gIn').value)||0,m=g/100;
   $('prev4').innerHTML=`<div><b>${nf(f.k*m)}</b><span>kcal</span></div><div><b>${nf(f.p*m,1)}</b><span>প্রোটিন</span></div><div><b>${nf(f.c*m,1)}</b><span>কার্ব</span></div><div><b>${nf(f.f*m,1)}</b><span>ফ্যাট</span></div>`;
 }
-function addEntry(){
+async function addEntry(){
   if(!S.ready){toast('ডেটা লোড হচ্ছে, একটু অপেক্ষা করুন');return}
   const f=S.sel,g=num($('gIn').value);
-  if(!f||!(g>0)||g>5000){toast('গ্রামের পরিমাণ সঠিকভাবে লিখুন');return}
+  if(!f||!Number.isFinite(g)||!(g>0)||g>5000){toast('গ্রামের পরিমাণ ১–৫০০০ এর মধ্যে লিখুন');return}
   day(S.date).e.push({id:uid(),n:f.bn,g:g,k:f.k,p:f.p,c:f.c,f:f.f,m:$('mealSel').value,t:Date.now()});
   S.settings.recent=[f.bn].concat(S.settings.recent.filter(n=>n!==f.bn)).slice(0,12);
-  saveDay(S.date);saveSettings();
-  toast(f.bn+' যোগ হয়েছে');
   S.sel=null;render();
+  try{await saveDay(S.date);await saveSettings();toast(f.bn+' সংরক্ষিত হয়েছে')}catch(e){}
 }
 
 /* ---------- পানি ---------- */
@@ -651,10 +647,11 @@ function renderWater(){
     <div class="row" style="align-items:end"><label class="f">নিজের পরিমাণ (মিলি)<input type="text" inputmode="numeric" id="wCustom" placeholder="যেমন ৩৫০"></label><button class="btn ghost" id="wAdd" style="flex:0 0 auto">যোগ করুন</button></div>
     <div class="wlog">${d.w.length?d.w.slice().reverse().map(x=>`<div><span>${fmtTime(x.t)} · ${nf(x.ml)} মিলি</span><button class="x" data-wdel="${x.id}" aria-label="মুছুন">✕</button></div>`).join(''):'<div class="muted small">এই দিনে এখনো পানি লেখা হয়নি।</div>'}</div>`;
 }
-function addWater(ml){
+async function addWater(ml){
   if(!S.ready){toast('ডেটা লোড হচ্ছে, একটু অপেক্ষা করুন');return}
-  if(!(ml>0)||ml>3000){toast('১ থেকে ৩০০০ মিলির মধ্যে লিখুন');return}
-  day(S.date).w.push({id:uid(),ml:ml,t:Date.now()});saveDay(S.date);render();
+  if(!Number.isFinite(ml)||!(ml>0)||ml>3000){toast('১ থেকে ৩০০০ মিলির মধ্যে লিখুন');return}
+  day(S.date).w.push({id:uid(),ml:ml,t:Date.now()});render();
+  try{await saveDay(S.date);toast('পানির তথ্য সংরক্ষিত হয়েছে')}catch(e){}
 }
 
 /* ---------- রিপোর্ট ---------- */
@@ -672,13 +669,13 @@ function chart(vals,labels,goal,cls,fmt){
   return s+'</svg>';
 }
 function renderReport(){
-  const keys=[];for(let i=6;i>=0;i--)keys.push(addDays(key(new Date()),-i));
+  const keys=[];for(let i=6;i>=0;i--)keys.push(addDays(S.date,-i));
   const ks=keys.map(k=>totals(day(k))),ws=keys.map(k=>waterOf(day(k))),lb=keys.map(fmtShort);
   const logged=keys.map((k,i)=>S.days[k]&&S.days[k].e.length?i:-1).filter(i=>i>=0);
   const avg=(arr,idx)=>idx.length?idx.reduce((a,i)=>a+arr[i],0)/idx.length:0;
   const g=goals();
   const wIdx=ws.map((v,i)=>v>0?i:-1).filter(i=>i>=0);
-  $('reportCard').innerHTML=`<h2>গত ৭ দিন</h2>
+  $('reportCard').innerHTML=`<h2>${fmtDate(S.date)} পর্যন্ত ৭ দিনের রিপোর্ট</h2>
     <h3>ক্যালোরি (kcal)</h3>${chart(ks.map(x=>Math.round(x.k)),lb,g.k,'b1',v=>nf(v))}
     <h3>পানি (লিটার)</h3>${chart(ws.map(v=>v/1000),lb,g.w/1000,'b2',v=>nf(v,1))}
     <div class="stats">
@@ -688,7 +685,7 @@ function renderReport(){
       <div><span class="small muted">গড় ফ্যাট</span><b>${nf(avg(ks.map(x=>x.f),logged))} গ্রাম</b></div>
       <div style="grid-column:1/-1"><span class="small muted">গড় পানি</span><b>${nf(avg(ws,wIdx)/1000,1)} লিটার</b></div>
     </div>
-    <div class="note">যে দিনে কিছু লেখা হয়নি সেই দিন গড়ে ধরা হয় না।</div>`;
+    <div class="note">রিপোর্টটি নির্বাচিত তারিখসহ আগের ৬ দিন নিয়ে তৈরি। যে দিনে খাবার/পানি লেখা হয়নি, সংশ্লিষ্ট গড়ে সেই দিন ধরা হয় না।</div>`;
 }
 
 /* ---------- লক্ষ্য ট্যাব ---------- */
@@ -704,16 +701,12 @@ function renderGoals(){
 }
 function calc(){
   const sex=$('cSex').value,age=num($('cAge').value),w=num($('cW').value),h=num($('cH').value),act=+$('cAct').value,mode=+$('cMode').value;
-  if(!(age>10&&age<100&&w>25&&w<300&&h>100&&h<230)){$('calcOut').innerHTML='<div class="note" style="color:var(--warn)">বয়স, ওজন ও উচ্চতা সঠিকভাবে লিখুন।</div>';return}
+  if(!(age>=18&&age<=100&&w>25&&w<300&&h>=120&&h<=230)){$('calcOut').innerHTML='<div class="note" style="color:var(--warn)">বয়স ১৮–১০০, ওজন ২৫–৩০০ কেজি এবং উচ্চতা ১২০–২৩০ সেমির মধ্যে লিখুন। ১৮ বছরের কম বয়সে এই প্রাপ্তবয়স্ক সূত্র ব্যবহার করবেন না।</div>';return}
   const bmr=10*w+6.25*h-5*age+(sex==='m'?5:-161),tdee=bmr*act;
-  const floor=sex==='m'?1500:1200;
-  let target=Math.round((tdee+mode)/10)*10,note='';
-  if(target<floor){target=floor;note=' (নিরাপদ সর্বনিম্ন সীমায় রাখা হয়েছে)'}
-  const prot=Math.round(w*(mode<0?1.8:1.6)/5)*5,water=Math.max(2000,Math.round(w*35/100)*100);
-  $('calcOut').innerHTML=`<div class="stats" style="margin-top:6px"><div><span class="small muted">BMR</span><b>${nf(bmr)}</b></div><div><span class="small muted">দৈনিক খরচ (TDEE)</span><b>${nf(tdee)}</b></div></div>
-    <div style="margin:10px 0">প্রস্তাবিত লক্ষ্য: <b>${nf(target)} kcal</b>${note}, প্রোটিন <b>${nf(prot)} গ্রাম</b>, পানি <b>${nf(water)} মিলি</b></div>
-    <button class="btn sm" id="useCalc" data-k="${target}" data-p="${prot}" data-w="${water}">এটি আমার লক্ষ্য করুন</button>
-    <div class="note" style="margin-top:8px">Mifflin-St Jeor সূত্র। এটি আনুমানিক। দুই সপ্তাহ লগ রেখে ওজন না নড়লে ক্যালোরি ১০০–২০০ কমান বা বাড়ান।</div>`;
+  const target=Math.round((tdee+(mode<0?Math.max(mode,-tdee*.20):mode))/10)*10;
+  const prot=Math.round(w*1.6/5)*5,water=Math.round(w*33/100)*100;
+  const caution=target<1200?'<div class="note" style="color:var(--warn)">এই হিসাবের ক্যালোরি লক্ষ্য খুব কম হতে পারে। নিজে থেকে এমন লক্ষ্য অনুসরণ না করে চিকিৎসক/পুষ্টিবিদের পরামর্শ নিন।</div>':'';
+  $('calcOut').innerHTML=`<div class="stats" style="margin-top:6px"><div><span class="small muted">BMR (বিশ্রামে আনুমানিক)</span><b>${nf(bmr)}</b></div><div><span class="small muted">দৈনিক খরচ (TDEE)</span><b>${nf(tdee)}</b></div></div><div style="margin:10px 0">প্রাথমিক লক্ষ্য: <b>${nf(target)} kcal</b>, প্রোটিন <b>${nf(prot)} গ্রাম</b></div>${caution}<div class="note">পানির ওজনভিত্তিক শুরুর আনুমানিক পরিমাণ: প্রায় ${nf(water)} মিলি/দিন। গরম, ঘাম, ব্যায়াম, খাবার এবং কিডনি/হৃদ্‌রোগে প্রয়োজন বদলায়; এটি চিকিৎসাগত নির্দেশ নয়।</div><button class="btn sm" id="useCalc" data-k="${target}" data-p="${prot}">ক্যালোরি ও প্রোটিন লক্ষ্য নিন</button><div class="note" style="margin-top:8px">Mifflin–St Jeor সূত্রের আনুমানিক হিসাব। কার্যকলাপের গুণকও অনুমাননির্ভর। ২–৪ সপ্তাহের ওজনের গড়, ক্ষুধা ও প্রশিক্ষণের পারফরম্যান্স দেখে লক্ষ্য সমন্বয় করুন।</div>`;
 }
 
 /* ---------- ট্যাব ও রেন্ডার ---------- */
@@ -737,6 +730,9 @@ function setTab(t){
   render();window.scrollTo(0,0);
 }
 
+/* ---------- JSON ব্যাকআপ ---------- */
+function exportBackup(){try{const payload={app:'PushtiKhata',version:1,exportedAt:new Date().toISOString(),settings:S.settings,days:S.days};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='pushtikhata-backup-'+key(new Date())+'.json';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);toast('ব্যাকআপ ফাইল তৈরি হয়েছে')}catch(e){toast('ব্যাকআপ তৈরি করা যায়নি')}}
+async function importBackup(file){if(!file)return;if(file.size>5*1024*1024){toast('ব্যাকআপ ফাইল ৫ MB-এর কম হতে হবে');return}try{const data=JSON.parse(await file.text());if(!data||data.app!=='PushtiKhata'||!data.settings||!data.days||typeof data.days!=='object'||Array.isArray(data.days))throw Error('format');for(const [k,v] of Object.entries(data.days)){if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||!v||!Array.isArray(v.e)||!Array.isArray(v.w))throw Error('day')}for(const [k,v] of Object.entries(data.days)){const old=S.days[k]||emptyDay(),em=new Map(old.e.map(x=>[String(x.id),x])),wm=new Map(old.w.map(x=>[String(x.id),x]));v.e.forEach(x=>em.set(String(x.id||uid()),x));v.w.forEach(x=>wm.set(String(x.id||uid()),x));S.days[k]={e:[...em.values()],w:[...wm.values()]}}const cm=new Map(S.settings.custom.map(x=>[String(x.id),x]));(Array.isArray(data.settings.custom)?data.settings.custom:[]).forEach(x=>cm.set(String(x.id||uid()),x));S.settings={...S.settings,...data.settings,custom:[...cm.values()]};normalizeData();if(S.mode==='local'){localStorage.setItem(LS,JSON.stringify({settings:S.settings,days:S.days}))}else{await Promise.all(Object.keys(S.days).map(k=>persist('d-'+k)));await persist('settings')}toast('ব্যাকআপ যুক্ত হয়েছে; আগের লগ রাখা হয়েছে');render()}catch(e){toast('ব্যাকআপ পড়া/সংরক্ষণ করা যায়নি। ফাইলটি যাচাই করুন।')}}
 /* ---------- ইভেন্ট ---------- */
 document.addEventListener('click',e=>{
   const el=e.target.closest('button');if(!el)return;
@@ -758,18 +754,21 @@ document.addEventListener('click',e=>{
   if(el.id==='saveGoals'){
     const k=num($('gK').value),p=num($('gP').value),w=num($('gW').value);
     if(!(k>=800&&k<=6000&&p>=20&&p<=400&&w>=500&&w<=8000)){toast('মান সঠিক সীমায় লিখুন (kcal ৮০০–৬০০০, প্রোটিন ২০–৪০০, পানি ৫০০–৮০০০)');return}
-    Object.assign(S.settings,{kcal:Math.round(k),protein:Math.round(p),water:Math.round(w)});saveSettings();toast('লক্ষ্য সংরক্ষিত হয়েছে');return render();
+    Object.assign(S.settings,{kcal:Math.round(k),protein:Math.round(p),water:Math.round(w)});return saveSettings().then(()=>{toast('লক্ষ্য সংরক্ষিত হয়েছে');render()}).catch(()=>{});
   }
   if(el.id==='calc')return calc();
-  if(el.id==='useCalc'){Object.assign(S.settings,{kcal:+el.dataset.k,protein:+el.dataset.p,water:+el.dataset.w});saveSettings();toast('লক্ষ্য বদলানো হয়েছে');return render()}
+  if(el.id==='useCalc'){Object.assign(S.settings,{kcal:+el.dataset.k,protein:+el.dataset.p});return saveSettings().then(()=>{toast('ক্যালোরি ও প্রোটিন লক্ষ্য সংরক্ষিত হয়েছে');render()}).catch(()=>{})}
   if(el.id==='cfAdd'){
-    const n=$('cfN').value.trim(),k=num($('cfK').value),p=num($('cfP').value)||0,c=num($('cfC').value)||0,f=num($('cfF').value)||0;
-    if(!n||!(k>=0)||k>950){toast('নাম ও প্রতি ১০০ গ্রামের kcal লিখুন');return}
-    if(allFoods().some(x=>x.bn===n)){toast('এই নামে আগেই একটি খাবার আছে, অন্য নাম দিন');return}
-    S.settings.custom.push({id:uid(),n:n,k:k,p:p,c:c,f:f});saveSettings();
-    ['cfN','cfK','cfP','cfC','cfF'].forEach(i=>$(i).value='');toast(n+' যোগ হয়েছে');return render();
+    const n=$('cfN').value.trim(),k=num($('cfK').value),p=num($('cfP').value),c=num($('cfC').value),f=num($('cfF').value);
+    if(!n||n.length>80||!Number.isFinite(k)||k<=0||k>950||![p,c,f].every(v=>Number.isFinite(v)&&v>=0&&v<=100)){toast('নাম (সর্বোচ্চ ৮০ অক্ষর), kcal ১–৯৫০ এবং প্রতিটি ম্যাক্রো ০–১০০ গ্রাম লিখুন');return}
+    if(4*p+4*c+9*f>k*1.5+15){toast('ম্যাক্রোর হিসাব kcal-এর তুলনায় অস্বাভাবিক বেশি। মান যাচাই করুন।');return}
+    if(allFoods().some(x=>x.bn.trim().toLowerCase()===n.toLowerCase())){toast('এই নামে আগেই একটি খাবার আছে, অন্য নাম দিন');return}
+    S.settings.custom.push({id:uid(),n:n,k:k,p:p,c:c,f:f});
+    ['cfN','cfK','cfP','cfC','cfF'].forEach(i=>$(i).value='');return saveSettings().then(()=>{toast(n+' সংরক্ষিত হয়েছে');render()}).catch(()=>render());
   }
-  if(el.dataset.cfdel){S.settings.custom=S.settings.custom.filter(x=>x.id!==el.dataset.cfdel);saveSettings();return render()}
+  if(el.dataset.cfdel){S.settings.custom=S.settings.custom.filter(x=>x.id!==el.dataset.cfdel);saveSettings().catch(()=>{});return render()}
+  if(el.id==='exportData')return exportBackup();
+  if(el.id==='importData')return $('backupFile').click();
 });
 document.addEventListener('input',e=>{
   if(e.target.id==='q'){S.q=e.target.value;renderResults()}
@@ -780,6 +779,7 @@ document.addEventListener('change',e=>{
   if(id){const x=day(S.date).e.find(v=>v.id===id),g=num(e.target.value);
     if(x&&g>0&&g<=5000){x.g=g;saveDay(S.date)}else toast('গ্রামের পরিমাণ সঠিকভাবে লিখুন');render()}
 });
+$('backupFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];importBackup(f);e.target.value=''});
 document.addEventListener('keydown',e=>{
   if(e.key!=='Enter')return;
   if(e.target.id==='gIn')addEntry();
